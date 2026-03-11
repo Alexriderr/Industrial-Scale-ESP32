@@ -20,7 +20,7 @@ const char* password = "15012003";
 #define Culito            200 //Control de timer
 #define Tare              201 //Tare de la balanza
 #define Menudeo           202 //Estado del relay para el menudeo
-
+#define DuaLipa           203 //Seleccion de modo de control del setpoint (0: Manual (con un potenciómetro), 1: Automático (Desde el SCADA))
 
 
 // Variables Globales
@@ -136,15 +136,16 @@ cronometro.iniciar();
       delay(1000);
         // Configuración Modbus
         mb.server();
-    mb.addHreg(REG_VOLTAGE, 0); //100
-    mb.addHreg(REG_MIN, 0);     //101
-    mb.addHreg(REG_SEG, 0);     //102
-    mb.addHreg(REG_GR, 0);      //103
-    mb.addHreg(ValorTare, 0);   //104
+    mb.addHreg(REG_VOLTAGE, 0);      //100
+    mb.addHreg(REG_MIN, 0);          //101
+    mb.addHreg(REG_SEG, 0);          //102
+    mb.addHreg(REG_GR, 0);           //103
+    mb.addHreg(ValorTare, 0);        //104
     mb.addHreg(ConsignaCogia, 0);    //105
-    mb.addCoil(Culito, false);  //200
-    mb.addCoil(Tare, false);    //201
-    mb.addCoil(Menudeo, false); //202
+    mb.addCoil(Culito, false);       //200
+    mb.addCoil(Tare, false);         //201
+    mb.addCoil(Menudeo, false);      //202
+    mb.addCoil(DuaLipa, false);      //203
   
     lcdGrande.clear();
 }
@@ -193,10 +194,16 @@ if (estadocogio != culo) {
             while (digitalRead(Tare_Button) == LOW);
           }
         }
-// Setpoint
-int lecturasetpoint = analogRead(Consigna);
-setpoint = map(lecturasetpoint, 0, 4095, 0, 1000); 
+// Setpoint Local/Remoto
 int pesoactual = peso;
+if (mb.Coil(DuaLipa)==false) {
+  //modo local, se lee el potenciómetro y se manda al SCADA
+  int lecturasetpoint = analogRead(Consigna);
+  setpoint = map(lecturasetpoint, 0, 4095, 0, 1000); // Mapeo de el valor del potenciómetro a un rango de peso
+} else {
+  //modo remoto, se ajusta el valor desde el scada
+  setpoint = mb.Hreg(ConsignaCogia);
+}
 // --- Lógica de Histéresis Puyada ---
 int margen = 20; // Gramos de holgura 
 
