@@ -197,14 +197,19 @@ if (estadocogio != culo) {
 int lecturasetpoint = analogRead(Consigna);
 setpoint = map(lecturasetpoint, 0, 4095, 0, 1000); 
 int pesoactual = peso;
-if ((pesoactual-100) <= setpoint && setpoint >= (pesoactual) ) {
-  digitalWrite(RelayPin, HIGH);
-  ActivoMenudeo = true;
-} else {
-  digitalWrite(RelayPin, LOW);
-  ActivoMenudeo = false;
-}
+// --- Lógica de Histéresis Puyada ---
+int margen = 20; // Gramos de holgura 
 
+if (pesoactual < (setpoint - margen)) {
+    
+    digitalWrite(RelayPin, HIGH);
+    ActivoMenudeo = true;
+} 
+else if (pesoactual >= setpoint) {
+
+    digitalWrite(RelayPin, LOW);
+    ActivoMenudeo = false;
+}
 // Actualización de datos
 static unsigned long lastPrint = 0;
 if (millis() - lastPrint > 1000) {
@@ -224,6 +229,7 @@ if (millis() - lastPrint > 1000) {
   mb.Hreg(REG_GR, peso);
   mb.Hreg(ValorTare, tare);
   mb.Hreg(ConsignaCogia, setpoint);
+  mb.Coil(Menudeo, ActivoMenudeo);
 
 //Mensaje en el puerto serial
 Serial.printf("⏱️ T: %02d:%02d | ⚖️ Peso: %d g | ⚡ Volt: %d mV | 🎯 Set: %d g\n",  minutos, segundos, peso, voltage, setpoint);
