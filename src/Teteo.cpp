@@ -17,17 +17,19 @@ const char* password = "15012003";
 #define REG_GR            103 //Peso en gramos
 #define ValorTare         104 //Valor del Tare 
 #define ConsignaCogia     105 //Setpoint del sistema 
+#define Warning           106 //Alarma 
 #define Culito            200 //Control de timer
 #define Tare              201 //Tare de la balanza
 #define Menudeo           202 //Estado del relay para el menudeo
 #define DuaLipa           203 //Seleccion de modo de control del setpoint (0: Manual (con un potenciómetro), 1: Automático (Desde el SCADA))
-
+#define nojoda            204 //Control de la luz de alarma
 
 // Variables Globales
 bool ActivoMenudeo = false;
 unsigned long lastDiscoUpdate = 0;
 long currentHue = 0;
 int setpoint = 0;
+int alarma = 0;
 
 
 //Configuracion Cogia de pines
@@ -142,10 +144,12 @@ cronometro.iniciar();
     mb.addHreg(REG_GR, 0);           //103
     mb.addHreg(ValorTare, 0);        //104
     mb.addHreg(ConsignaCogia, 0);    //105
+    mb.addHreg(Warning,0);           //106
     mb.addCoil(Culito, false);       //200
     mb.addCoil(Tare, false);         //201
     mb.addCoil(Menudeo, false);      //202
     mb.addCoil(DuaLipa, false);      //203
+    mb.addCoil(nojoda,false);        //204
   
     lcdGrande.clear();
 }
@@ -206,6 +210,12 @@ if (mb.Coil(DuaLipa)==false) {
 }
 // --- Lógica de Histéresis Puyada ---
 int margen = 20; // Gramos de holgura 
+// Alarma malparia
+if (pesoactual > alarma) {
+  mb.Coil(nojoda, true); // Enciende la luz de alarma
+} else {
+  mb.Coil(nojoda, false); // Apaga la luz de alarma
+}
 
 if (pesoactual < (setpoint - margen)) {
     
@@ -217,6 +227,9 @@ else if (pesoactual >= setpoint) {
     digitalWrite(RelayPin, LOW);
     ActivoMenudeo = false;
 }
+// Obtencion del valor de Alarma
+alarma = mb.Hreg(Warning);
+
 // Actualización de datos
 static unsigned long lastPrint = 0;
 if (millis() - lastPrint > 1000) {
@@ -236,6 +249,7 @@ if (millis() - lastPrint > 1000) {
   mb.Hreg(REG_GR, peso);
   mb.Hreg(ValorTare, tare);
   mb.Hreg(ConsignaCogia, setpoint);
+  mb.Hreg(Warning,alarma);
   mb.Coil(Menudeo, ActivoMenudeo);
 
 //Mensaje en el puerto serial
